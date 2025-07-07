@@ -52,38 +52,47 @@
           Load more
         </button>
         <div
-          class="chat__messages__wrapper"
-          v-for="(message, index) in chatInfo.messages"
-          :key="message.id"
+          v-for="(dateGroup, dateIndex) in chatInfo.messages"
+          :key="dateGroup.date"
+          class="chat__date-group"
         >
+          <div class="chat__date-header">
+            {{ formatDateHeader(dateGroup.date) }}
+          </div>
           <div
-            v-if="message.action == 1"
-            class="chat__message--text"
-            :class="
-              message.ownMessage
-                ? 'chat__message--sent'
-                : 'chat__message--received'
-            "
+            class="chat__messages__wrapper"
+            v-for="(message, messageIndex) in dateGroup.messages"
+            :key="message.id"
           >
             <div
-              v-if="
-                !message.ownMessage &&
-                (index == 0 ||
-                  chatInfo.messages[index - 1].ownMessage != message.ownMessage)
+              v-if="message.action == 1"
+              class="chat__message--text"
+              :class="
+                message.ownMessage
+                  ? 'chat__message--sent'
+                  : 'chat__message--received'
               "
-              class="chat__message__name"
             >
-              {{ getFirstName(message.senderName) }}
+              <div
+                v-if="
+                  !message.ownMessage &&
+                  (messageIndex == 0 ||
+                    dateGroup.messages[messageIndex - 1].ownMessage != message.ownMessage)
+                "
+                class="chat__message__name"
+              >
+                {{ getFirstName(message.senderName) }}
+              </div>
+              <div class="chat__message__content">
+                {{ message.content }}
+              </div>
+              <div class="chat__message__time">
+                {{ dateHandler.getStringTime(message.sendingTime) }}
+              </div>
             </div>
-            <div class="chat__message__content">
-              {{ message.content }}
+            <div v-else-if="message.action == 2" class="chat__message--info">
+              <b>{{ message.senderName }}</b> created the chat
             </div>
-            <div class="chat__message__time">
-              {{ dateHandler.getStringTime(message.sendingTime) }}
-            </div>
-          </div>
-          <div v-else-if="message.action == 2" class="chat__message--info">
-            <b>{{ message.senderName }}</b> created the chat
           </div>
         </div>
       </div>
@@ -214,6 +223,33 @@ const focusInput = () => {
 
 const loadMessages = () => {
   emit('loadMessages')
+}
+
+const formatDateHeader = (dateString) => {
+  let normalizedDateString = dateString
+  if (dateString.length === 10 && dateString.includes('-')) {
+    normalizedDateString = dateString + 'T12:00:00'
+  }
+  
+  const date = new Date(normalizedDateString)
+  
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  const isSameDate = (date1, date2) => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate()
+  }
+  
+  if (isSameDate(date, today)) {
+    return 'Today'
+  } else if (isSameDate(date, yesterday)) {
+    return 'Yesterday'
+  } else {
+    return dateHandler.getStringDate(dateString)
+  }
 }
 
 defineExpose({

@@ -1,6 +1,72 @@
 import api from './shared/api'
 import chatHub from '@/hubs/chatHub.js'
 
+// Funções utilitárias para gerenciar mensagens agrupadas por data
+const getDateString = (date) => {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const addMessageToGroupedStructure = (messages, newMessage) => {
+  if (!messages || !Array.isArray(messages)) {
+    const dateString = getDateString(newMessage.sendingTime)
+    return [{
+      date: dateString,
+      messages: [newMessage]
+    }]
+  }
+
+  const dateString = getDateString(newMessage.sendingTime)
+  
+  // Procurar se já existe um grupo para esta data
+  const existingGroupIndex = messages.findIndex(group => group.date === dateString)
+  
+  if (existingGroupIndex >= 0) {
+    messages[existingGroupIndex].messages.push(newMessage)
+    messages[existingGroupIndex].messages.sort((a, b) => new Date(a.sendingTime) - new Date(b.sendingTime))
+  } else {
+    messages.push({
+      date: dateString,
+      messages: [newMessage]
+    })
+    messages.sort((a, b) => new Date(a.date + 'T12:00:00') - new Date(b.date + 'T12:00:00'))
+  }
+  
+  return messages
+}
+
+const updateMessageInGroupedStructure = (messages, updatedMessage) => {
+  if (!messages || !Array.isArray(messages)) return messages
+  
+  const dateString = getDateString(updatedMessage.sendingTime)
+  
+  for (let groupIndex = 0; groupIndex < messages.length; groupIndex++) {
+    const group = messages[groupIndex]
+    const messageIndex = group.messages.findIndex(msg => msg.id === updatedMessage.id)
+    
+    if (messageIndex >= 0) {
+      if (group.date !== dateString) {
+        group.messages.splice(messageIndex, 1)
+        
+        if (group.messages.length === 0) {
+          messages.splice(groupIndex, 1)
+        }
+        
+        return addMessageToGroupedStructure(messages, updatedMessage)
+      } else {
+        group.messages[messageIndex] = updatedMessage
+        group.messages.sort((a, b) => new Date(a.sendingTime) - new Date(b.sendingTime))
+        return messages
+      }
+    }
+  }
+  
+  return messages
+}
+
 export default function useChat(
   router,
   toast,
@@ -35,7 +101,7 @@ export default function useChat(
     }
 
     if (currentChat.value && currentChat.value.id == response.conversationId) {
-      currentChat.value.messages.push(response)
+      currentChat.value.messages = addMessageToGroupedStructure(currentChat.value.messages, response)
       if (scrollOnReceive) ChatAreaCp.value.scrollToBottom()
     }
   })
@@ -210,16 +276,12 @@ export default function useChat(
         action: 1,
         conversationId: currentChat.value.id,
       }
-      currentChat.value.messages.push(messageObj)
+      currentChat.value.messages = addMessageToGroupedStructure(currentChat.value.messages, messageObj)
       messageObj.sendingTime = messageObj.sendingTime.toJSON()
       hub.invoke('SendMessage', messageObj).then((result) => {
-        let index = currentChat.value.messages.findIndex(
-          (where) => where.id == handlerId
-        )
-        if (index >= 0) {
-          currentChat.value.messages[index] = result
-          ChatAreaCp.value.scrollToBottom()
-        }
+        currentChat.value.messages = updateMessageInGroupedStructure(currentChat.value.messages, result)
+        ChatAreaCp.value.scrollToBottom()
+        
         let chatIndex = conversations.value.findIndex(
           (find) => find.id == result.conversationId
         )
@@ -290,15 +352,43 @@ export default function useChat(
     })
   ]
 
-  const loadMessages = () => {
-    api.loadMessages(currentChat.value.id, currentChat.value.messages[0].id).then((payload) => {
-      const conversation = payload.data
-      if (conversation) {
-        currentChat.value.messages = conversation.messages.concat(currentChat.value.messages)
-        currentChat.value.hasPreviousMessages = conversation.hasPreviousMessages
-      }
-    })
-  }
+  const mergeMessageGroups = (oldMessages, newMessages) => {
+  if (!oldMessages || !Array.isArray(oldMessages)) return newMessages
+  if (!newMessages || !Array.isArray(newMessages)) return oldMessages
+  
+  const merged = [...oldMessages]
+  
+  newMessages.forEach(newGroup => {
+    const existingGroupIndex = merged.findIndex(group => group.date === newGroup.date)
+    
+    if (existingGroupIndex >= 0) {
+      merged[existingGroupIndex].messages = newGroup.messages.concat(merged[existingGroupIndex].messages)
+      merged[existingGroupIndex].messages.sort((a, b) => new Date(a.sendingTime) - new Date(b.sendingTime))
+    } else {
+      newGroup.messages.sort((a, b) => new Date(a.sendingTime) - new Date(b.sendingTime))
+      merged.unshift(newGroup)
+    }
+  })
+  
+  merged.sort((a, b) => new Date(a.date + 'T12:00:00') - new Date(b.date + 'T12:00:00'))
+  
+  return merged
+}
+
+const loadMessages = () => {
+  // Pegar o ID da primeira mensagem do primeiro grupo
+  const firstMessageId = currentChat.value.messages[0]?.messages[0]?.id
+  if (!firstMessageId) return
+  
+  api.loadMessages(currentChat.value.id, firstMessageId).then((payload) => {
+    const conversation = payload.data
+    if (conversation) {
+      // Mesclar as mensagens antigas com as atuais, agrupando por data
+      currentChat.value.messages = mergeMessageGroups(conversation.messages, currentChat.value.messages)
+      currentChat.value.hasPreviousMessages = conversation.hasPreviousMessages
+    }
+  })
+}
 
   // on each first load
   loadAllConversations()

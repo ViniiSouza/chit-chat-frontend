@@ -54,8 +54,29 @@
   background-color: rgb(255, 226, 195);
 }
 
+.chat__date-group {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.chat__date-header {
+  text-align: center;
+  margin: 15px 0 10px 0;
+  font-size: 12px;
+  color: var(--dark);
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 5px 15px;
+  border-radius: 15px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .chat__messages__wrapper {
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat__message--text {
@@ -66,6 +87,7 @@
   margin: 3px 20px;
   padding: 5px 10px 15px 10px;
   background-color: var(--white);
+  position: relative;
 }
 
 .chat__message--info {
@@ -91,15 +113,17 @@
 }
 
 .chat__message--sent {
-  float: right;
-  border-radius: 5px 5px 20px 5px;
   align-self: flex-end;
+  border-radius: 5px 5px 20px 5px;
+  margin-left: auto;
+  margin-right: 20px;
 }
 
 .chat__message--received {
-  float: left;
-  border-radius: 5px 5px 5px 20px;
   align-self: flex-start;
+  border-radius: 5px 5px 5px 20px;
+  margin-right: auto;
+  margin-left: 20px;
 }
 
 .chat__message__content {
@@ -232,10 +256,12 @@
   }
 
   .chat__message--sent {
+    margin-right: 10px;
     border-radius: 5px 5px 15px 5px;
   }
 
   .chat__message--received {
+    margin-left: 10px;
     border-radius: 5px 5px 5px 15px;
   }
 }

@@ -31,7 +31,7 @@ export default {
     },
     logoImg: {
       type: String,
-      default: 'https://i.imgur.com/zBJnlSa.png'
+      default: 'https://i.imgur.com/EuPx9ng.png'
     },
     showIcons: {
       type: Boolean,
