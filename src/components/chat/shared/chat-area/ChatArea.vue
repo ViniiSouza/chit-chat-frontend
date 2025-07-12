@@ -222,7 +222,20 @@ const focusInput = () => {
 }
 
 const loadMessages = () => {
-  emit('loadMessages')
+  const scrollPosition = messageArea.value.scrollTop
+  const scrollHeight = messageArea.value.scrollHeight
+  
+  emit('loadMessages', { scrollPosition, scrollHeight })
+}
+
+const restoreScrollPosition = (oldScrollHeight) => {
+  nextTick(() => {
+    if (messageArea.value) {
+      const newScrollHeight = messageArea.value.scrollHeight
+      const heightDifference = newScrollHeight - oldScrollHeight
+      messageArea.value.scrollTop = heightDifference
+    }
+  })
 }
 
 const formatDateHeader = (dateString) => {
@@ -255,5 +268,6 @@ const formatDateHeader = (dateString) => {
 defineExpose({
   userInBottom,
   scrollToBottom,
+  restoreScrollPosition,
 })
 </script>

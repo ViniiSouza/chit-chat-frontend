@@ -375,7 +375,7 @@ export default function useChat(
   return merged
 }
 
-const loadMessages = () => {
+const loadMessages = (scrollInfo) => {
   // Pegar o ID da primeira mensagem do primeiro grupo
   const firstMessageId = currentChat.value.messages[0]?.messages[0]?.id
   if (!firstMessageId) return
@@ -386,6 +386,10 @@ const loadMessages = () => {
       // Mesclar as mensagens antigas com as atuais, agrupando por data
       currentChat.value.messages = mergeMessageGroups(conversation.messages, currentChat.value.messages)
       currentChat.value.hasPreviousMessages = conversation.hasPreviousMessages
+
+      if (scrollInfo && scrollInfo.scrollHeight) {
+        ChatAreaCp.value.restoreScrollPosition(scrollInfo.scrollHeight)
+      }
     }
   })
 }
