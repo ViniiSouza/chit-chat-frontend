@@ -59,8 +59,13 @@
             conversation.draft && 'chat__conversations__item__name--italic'
           "
         >
+        <div v-if="conversation.lastMessage?.action == 1">
           <b v-if="conversation.lastMessage?.ownMessage">You: </b>
           {{ conversation.lastMessage?.content }}
+        </div>
+        <div v-else-if="conversation.lastMessage?.action == 5">
+          {{ conversation.lastMessage?.ownMessage ? 'You' : conversation.lastMessage?.senderName}} accepted the request
+        </div>
         </span>
       </li>
     </ul>

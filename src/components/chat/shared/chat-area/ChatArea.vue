@@ -93,6 +93,9 @@
             <div v-else-if="message.action == 2" class="chat__message--info">
               <b>{{ message.senderName }}</b> created the chat
             </div>
+            <div v-else-if="message.action == 5" class="chat__message--info">
+              <b>{{ message.ownMessage ? 'You' : message.senderName }}</b> accepted the request
+            </div>
           </div>
         </div>
       </div>
